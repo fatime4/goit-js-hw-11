@@ -6,21 +6,10 @@ import 'simplelightbox/dist/simple-lightbox.min.css';
 
 const formEl = document.querySelector('#search-form');
 const galleryEl = document.querySelector('.gallery');
+const loadMoreBtn = document.querySelector('.load-more');
 
 const pixabayApi = new PixabayApi();
 const gallery = new SimpleLightbox('.gallery a');
-const observer = new IntersectionObserver(
-  (entries, observer) => {
-    if (entries[0].isIntersecting) {
-      loadMore();
-    }
-  },
-  {
-    root: null,
-    rootMargin: '600px',
-    threshold: 1,
-  }
-);
 
 const onFormSubmit = async event => {
   event.preventDefault();
@@ -29,7 +18,7 @@ const onFormSubmit = async event => {
 
   if (pixabayApi.query === '') {
     galleryEl.innerHTML = '';
-
+    loadMoreBtn.classList.add('is-hidden');
     event.target.reset();
     return;
   }
@@ -39,7 +28,7 @@ const onFormSubmit = async event => {
 
     if (response.data.totalHits === 0) {
       galleryEl.innerHTML = '';
-
+      loadMoreBtn.classList.add('is-hidden');
       event.target.reset();
       Notiflix.Notify.failure(
         'Sorry, there are no images matching your search query. Please try again.'
@@ -47,10 +36,12 @@ const onFormSubmit = async event => {
       return;
     }
     if (pixabayApi.page * pixabayApi.per_page > response.data.totalHits) {
+      loadMoreBtn.classList.add('is-hidden');
       Notiflix.Notify.info(
         "We're sorry, but you've reached the end of search results."
       );
     } else {
+      loadMoreBtn.classList.remove('is-hidden');
       Notiflix.Notify.success(
         `Hooray! We found ${response.data.totalHits} images.`
       );
@@ -58,33 +49,42 @@ const onFormSubmit = async event => {
 
     galleryEl.innerHTML = createGalleryCards(response.data.hits);
     gallery.refresh();
-    observer.observe(document.querySelector('.target-element'));
   } catch (error) {
     console.log(error);
   }
 };
 
-const loadMore = async event => {
+const onLoadMoreBtnClick = async event => {
   pixabayApi.page += 1;
 
   try {
     const response = await pixabayApi.fetchPhotos();
 
     if (pixabayApi.page * pixabayApi.per_page > response.data.totalHits) {
+      loadMoreBtn.classList.add('is-hidden');
       Notiflix.Notify.info(
         "We're sorry, but you've reached the end of search results."
       );
-      observer.unobserve(document.querySelector('.target-element'));
+    } else {
+      loadMoreBtn.classList.remove('is-hidden');
     }
     galleryEl.insertAdjacentHTML(
       'beforeend',
       createGalleryCards(response.data.hits)
     );
-
     gallery.refresh();
+    const { height: cardHeight } = document
+      .querySelector('.gallery')
+      .firstElementChild.getBoundingClientRect();
+
+    window.scrollBy({
+      top: cardHeight * 2,
+      behavior: 'smooth',
+    });
   } catch (error) {
     console.log(error);
   }
 };
 
 formEl.addEventListener('submit', onFormSubmit);
+loadMoreBtn.addEventListener('click', onLoadMoreBtnClick);
