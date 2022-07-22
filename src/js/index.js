@@ -1,6 +1,6 @@
 import Notiflix from 'notiflix';
-import { PixabayApi } from './js/fetchGallery';
-import createGalleryCards from './templates/create-gallery.hbs';
+import { PixabayApi } from './fetchGallery';
+import createGalleryCards from '../templates/create-gallery.hbs';
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 
@@ -26,10 +26,10 @@ const onFormSubmit = async event => {
   event.preventDefault();
 
   pixabayApi.query = event.currentTarget.elements['searchQuery'].value.trim();
+  pixabayApi.page = 1;
 
   if (pixabayApi.query === '') {
     galleryEl.innerHTML = '';
-
     event.target.reset();
     return;
   }
@@ -39,26 +39,26 @@ const onFormSubmit = async event => {
 
     if (response.data.totalHits === 0) {
       galleryEl.innerHTML = '';
-
       event.target.reset();
       Notiflix.Notify.failure(
         'Sorry, there are no images matching your search query. Please try again.'
       );
       return;
     }
+
+    Notiflix.Notify.success(
+      `Hooray! We found ${response.data.totalHits} images.`
+    );
+    galleryEl.innerHTML = createGalleryCards(response.data.hits);
+    gallery.refresh();
+    observer.observe(document.querySelector('.target-element'));
+
     if (pixabayApi.page * pixabayApi.per_page > response.data.totalHits) {
       Notiflix.Notify.info(
         "We're sorry, but you've reached the end of search results."
       );
-    } else {
-      Notiflix.Notify.success(
-        `Hooray! We found ${response.data.totalHits} images.`
-      );
+      observer.unobserve(document.querySelector('.target-element'));
     }
-
-    galleryEl.innerHTML = createGalleryCards(response.data.hits);
-    gallery.refresh();
-    observer.observe(document.querySelector('.target-element'));
   } catch (error) {
     console.log(error);
   }

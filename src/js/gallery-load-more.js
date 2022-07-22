@@ -1,6 +1,6 @@
 import Notiflix from 'notiflix';
-import { PixabayApi } from './js/fetchGallery';
-import createGalleryCards from './templates/create-gallery.hbs';
+import { PixabayApi } from './fetchGallery';
+import createGalleryCards from '../templates/create-gallery.hbs';
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 
@@ -15,6 +15,7 @@ const onFormSubmit = async event => {
   event.preventDefault();
 
   pixabayApi.query = event.currentTarget.elements['searchQuery'].value.trim();
+  pixabayApi.page = 1;
 
   if (pixabayApi.query === '') {
     galleryEl.innerHTML = '';
@@ -25,7 +26,7 @@ const onFormSubmit = async event => {
 
   try {
     const response = await pixabayApi.fetchPhotos();
-
+    console.log(pixabayApi);
     if (response.data.totalHits === 0) {
       galleryEl.innerHTML = '';
       loadMoreBtn.classList.add('is-hidden');
@@ -35,20 +36,20 @@ const onFormSubmit = async event => {
       );
       return;
     }
+
+    Notiflix.Notify.success(
+      `Hooray! We found ${response.data.totalHits} images.`
+    );
+    galleryEl.innerHTML = createGalleryCards(response.data.hits);
+    gallery.refresh();
+    loadMoreBtn.classList.remove('is-hidden');
+
     if (pixabayApi.page * pixabayApi.per_page > response.data.totalHits) {
       loadMoreBtn.classList.add('is-hidden');
       Notiflix.Notify.info(
         "We're sorry, but you've reached the end of search results."
       );
-    } else {
-      loadMoreBtn.classList.remove('is-hidden');
-      Notiflix.Notify.success(
-        `Hooray! We found ${response.data.totalHits} images.`
-      );
     }
-
-    galleryEl.innerHTML = createGalleryCards(response.data.hits);
-    gallery.refresh();
   } catch (error) {
     console.log(error);
   }
